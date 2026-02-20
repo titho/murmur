@@ -1,0 +1,51 @@
+# Xcode
+*.xcuserstate
+xcuserdata/
+DerivedData/
+*.xcworkspace/xcuserdata/
+.build/
+
+# Build artifacts
+*.o
+*.a
+*.d
+build-macos/
+whisper.cpp/build-macos/
+
+# Models (large binary files - download separately)
+*.bin
+*.ggml
+*.mlmodelc/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Xcode DerivedData
+*.hmap
+*.ipa
+*.xcarchive
+
+# Swift Package Manager
+.swiftpm/
+
+# Editor
+.vscode/
+*.swp
+
+# Claude / AI tooling
+CLAUDE.md
+.claude/
+*.claude-plan
+
+# Personal planning docs
+MARKETING.md
+SHARING.md
+
+# Whisper.cpp (local build, not committed)
+whisper.cpp/
+
+# Environment
+.env
+*.env.local

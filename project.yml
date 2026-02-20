@@ -1,0 +1,65 @@
+name: Murmur
+
+options:
+  bundleIdPrefix: com.stoilyankov
+  deploymentTarget:
+    macOS: "14.0"
+  createIntermediateGroups: true
+  groupSortPosition: top
+
+packages:
+  WhisperKit:
+    url: https://github.com/argmaxinc/WhisperKit
+    from: "0.9.0"
+
+settings:
+  base:
+    MACOSX_DEPLOYMENT_TARGET: "14.0"
+    SWIFT_VERSION: "5.9"
+    CODE_SIGN_STYLE: Automatic
+    DEVELOPMENT_TEAM: ""
+    CODE_SIGNING_REQUIRED: NO
+    CODE_SIGNING_ALLOWED: NO
+
+targets:
+  Murmur:
+    type: application
+    platform: macOS
+    deploymentTarget: "14.0"
+
+    sources:
+      - path: Sources/Murmur
+        excludes:
+          - "**/*.h"
+          - "Bridging/**"
+
+    dependencies:
+      - package: WhisperKit
+        product: WhisperKit
+
+    info:
+      path: Sources/Murmur/Resources/Info.plist
+      properties:
+        CFBundleName: "Murmur"
+        CFBundleDisplayName: "Murmur"
+        CFBundleIdentifier: "com.stoilyankov.Murmur"
+        CFBundleVersion: "1"
+        CFBundleShortVersionString: "1.0.0"
+        NSMicrophoneUsageDescription: "Murmur needs microphone access to transcribe your speech."
+        NSAppleEventsUsageDescription: "Murmur uses Accessibility to paste transcribed text into apps."
+        LSUIElement: true
+        LSMinimumSystemVersion: "14.0"
+
+    entitlements:
+      path: Murmur.entitlements
+
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.stoilyankov.Murmur
+        OTHER_LDFLAGS:
+          - "-framework Carbon"
+          - "-framework AVFoundation"
+          - "-framework ApplicationServices"
+        ENABLE_HARDENED_RUNTIME: NO
+        CODE_SIGNING_REQUIRED: NO
+        CODE_SIGNING_ALLOWED: NO
