@@ -28,8 +28,17 @@ mkdir -p ~/Applications
 rm -rf ~/Applications/Murmur.app
 cp -r "$APP_PATH" ~/Applications/Murmur.app
 
-echo "▶ Ad-hoc signing (keeps accessibility permission across rebuilds)..."
-codesign --sign - --force --deep --preserve-metadata=entitlements ~/Applications/Murmur.app
+echo "▶ Signing..."
+CERT_NAME="Murmur Dev"
+if security find-certificate -c "$CERT_NAME" > /dev/null 2>&1; then
+  codesign --sign "$CERT_NAME" --force --deep ~/Applications/Murmur.app
+  echo "  ✓ Signed with '$CERT_NAME' (accessibility will persist across rebuilds)"
+else
+  codesign --sign - --force --deep ~/Applications/Murmur.app
+  echo "  ⚠ Signed ad-hoc — accessibility permission will reset each rebuild"
+  echo "  Fix: Keychain Access → Certificate Assistant → Create a Certificate"
+  echo "       Name: 'Murmur Dev' | Self Signed Root | Code Signing"
+fi
 
 echo "▶ Relaunching..."
 pkill -x "Murmur" 2>/dev/null || true
