@@ -24,6 +24,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // The stable identity at ~/Applications/Murmur.app ensures macOS remembers the grant.
         AVCaptureDevice.requestAccess(for: .audio) { _ in }
 
+        // Request accessibility permission if not already granted — required for paste-on-cursor.
+        // Passing the prompt option opens System Settings so the user can add Murmur immediately.
+        if !AXIsProcessTrusted() {
+            let opts = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
+            AXIsProcessTrustedWithOptions(opts)
+        }
+
         statusBarController = StatusBarController(viewModel: viewModel)
         viewModel.setup()
     }

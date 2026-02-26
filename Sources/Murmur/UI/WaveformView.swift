@@ -45,7 +45,7 @@ struct IdleWaveformView: View {
     @State private var phase: Double = 0
 
     var body: some View {
-        TimelineView(.animation) { timeline in
+        TimelineView(.animation(minimumInterval: 1.0 / 10.0)) { timeline in
             Canvas { ctx, size in
                 let count = 40
                 let barWidth: CGFloat = 4

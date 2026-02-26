@@ -1,13 +1,18 @@
 import AppKit
 import ApplicationServices
+import os.log
+
+private let pasteLog = Logger(subsystem: "com.stoilyankov.Murmur", category: "paste")
 
 class OutputManager {
-    /// Copy text to clipboard and (if outputMode allows) paste into frontmost app.
     func output(_ text: String) {
         let mode = UserDefaults.standard.string(forKey: "outputMode") ?? "clipboardAndPaste"
+        pasteLog.info("output() called, mode=\(mode), text length=\(text.count)")
         copyToClipboard(text)
         if mode == "clipboardAndPaste" {
             simulatePaste()
+        } else {
+            pasteLog.info("paste skipped — mode is not clipboardAndPaste")
         }
     }
 
@@ -17,14 +22,25 @@ class OutputManager {
     }
 
     private func simulatePaste() {
-        guard AXIsProcessTrusted() else { return }
+        let trusted = AXIsProcessTrusted()
+        pasteLog.info("simulatePaste: AXIsProcessTrusted=\(trusted)")
+        guard trusted else {
+            pasteLog.warning("simulatePaste: aborting — accessibility not granted")
+            return
+        }
+
         let source = CGEventSource(stateID: .hidSystemState)
+        pasteLog.info("simulatePaste: CGEventSource=\(source != nil)")
+
         let keyDown = CGEvent(keyboardEventSource: source, virtualKey: 0x09, keyDown: true)
+        let keyUp   = CGEvent(keyboardEventSource: source, virtualKey: 0x09, keyDown: false)
+        pasteLog.info("simulatePaste: keyDown=\(keyDown != nil), keyUp=\(keyUp != nil)")
+
         keyDown?.flags = .maskCommand
-        let keyUp = CGEvent(keyboardEventSource: source, virtualKey: 0x09, keyDown: false)
-        keyUp?.flags = .maskCommand
-        let loc = CGEventTapLocation.cghidEventTap
-        keyDown?.post(tap: loc)
-        keyUp?.post(tap: loc)
+        keyUp?.flags   = .maskCommand
+
+        keyDown?.post(tap: .cghidEventTap)
+        keyUp?.post(tap: .cghidEventTap)
+        pasteLog.info("simulatePaste: events posted")
     }
 }

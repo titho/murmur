@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e
+set -eo pipefail
 
 PROJECT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
@@ -27,6 +27,9 @@ APP_PATH=$(find ~/Library/Developer/Xcode/DerivedData/Murmur-* -name "Murmur.app
 mkdir -p ~/Applications
 rm -rf ~/Applications/Murmur.app
 cp -r "$APP_PATH" ~/Applications/Murmur.app
+
+echo "▶ Ad-hoc signing (keeps accessibility permission across rebuilds)..."
+codesign --sign - --force --deep --preserve-metadata=entitlements ~/Applications/Murmur.app
 
 echo "▶ Relaunching..."
 pkill -x "Murmur" 2>/dev/null || true
