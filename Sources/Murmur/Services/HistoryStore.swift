@@ -49,6 +49,12 @@ class HistoryStore: ObservableObject {
         save()
     }
 
+    func update(_ entry: TranscriptionEntry) {
+        guard let idx = entries.firstIndex(where: { $0.id == entry.id }) else { return }
+        entries[idx] = entry
+        save()
+    }
+
     func clear() {
         entries.removeAll()
         save()
