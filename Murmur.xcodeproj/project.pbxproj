@@ -16,6 +16,7 @@
 		56ACCFFDEDC030F1DB861C53 /* WhisperService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4972BD33F6B2F7956C1303BC /* WhisperService.swift */; };
 		60A583A09F5E2B557240A6A7 /* AudioRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 184FE11D216AE08C9313625C /* AudioRecorder.swift */; };
 		643ABEDAEE0270925156BA56 /* TranscriptionEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27E3B10230984DFEB8BA743B /* TranscriptionEntry.swift */; };
+		6B09AEABB3491B110DFC38CB /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1BFF72DBE507DEC2E8EDD9CF /* Assets.xcassets */; };
 		A6F3F962FC2549A792A8C794 /* StatusBarController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2156F829F2B2479021AAFC1 /* StatusBarController.swift */; };
 		B26EBB581E56F79916641F62 /* CleanupHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6793632B28727DA1EE3B25C /* CleanupHistoryView.swift */; };
 		B695674187C8108F60CD4F81 /* MurmurApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 141E84EBCBA767FF640CA205 /* MurmurApp.swift */; };
@@ -38,6 +39,7 @@
 		141E84EBCBA767FF640CA205 /* MurmurApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MurmurApp.swift; sourceTree = "<group>"; };
 		184FE11D216AE08C9313625C /* AudioRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioRecorder.swift; sourceTree = "<group>"; };
 		1B0F0C3264FA209BAC30A66E /* CleanupService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CleanupService.swift; sourceTree = "<group>"; };
+		1BFF72DBE507DEC2E8EDD9CF /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		27E3B10230984DFEB8BA743B /* TranscriptionEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptionEntry.swift; sourceTree = "<group>"; };
 		2D9429303790DA1D1F15617C /* HistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryView.swift; sourceTree = "<group>"; };
 		4972BD33F6B2F7956C1303BC /* WhisperService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WhisperService.swift; sourceTree = "<group>"; };
@@ -126,6 +128,7 @@
 		8EBC0B58DCD62C329FEEF264 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				1BFF72DBE507DEC2E8EDD9CF /* Assets.xcassets */,
 				8ABC8C6170C676427F3C8743 /* Info.plist */,
 			);
 			path = Resources;
@@ -178,6 +181,7 @@
 			buildConfigurationList = EDB1F9ED9EE411689FF7A246 /* Build configuration list for PBXNativeTarget "Murmur" */;
 			buildPhases = (
 				55FA5046E9EFCAD54C9E8A85 /* Sources */,
+				5D518C0DA7FA93F54066B380 /* Resources */,
 				D9FDE2E088591FE29B875987 /* Frameworks */,
 			);
 			buildRules = (
@@ -228,6 +232,17 @@
 			);
 		};
 /* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		5D518C0DA7FA93F54066B380 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				6B09AEABB3491B110DFC38CB /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		55FA5046E9EFCAD54C9E8A85 /* Sources */ = {

@@ -3,6 +3,9 @@ import AppKit
 import AVFoundation
 import Combine
 import UniformTypeIdentifiers
+import os.log
+
+private let dictLog = Logger(subsystem: "com.stoilyankov.Murmur", category: "paste")
 
 enum RecordingState: Equatable {
     case idle
@@ -65,6 +68,10 @@ class DictationViewModel: ObservableObject {
         }
 
         resourceMonitor.start()
+
+        if !AXIsProcessTrusted() {
+            dictLog.warning("setup: Accessibility not granted — paste will not work until permission is given in System Settings → Privacy & Security → Accessibility")
+        }
 
         Task {
             await loadModelIfNeeded()
@@ -186,11 +193,13 @@ class DictationViewModel: ObservableObject {
             state = .done(finalText)
 
             if !finalText.isEmpty {
-                if let app = targetApp {
-                    app.activate(options: .activateIgnoringOtherApps)
+                let selfBundle = Bundle.main.bundleIdentifier
+                if let app = targetApp, app.bundleIdentifier != selfBundle {
+                    app.activate()
                     try? await Task.sleep(nanoseconds: 400_000_000)
                 }
-                outputManager.output(finalText)
+                let pid = targetApp.map { pid_t($0.processIdentifier) }
+                outputManager.output(finalText, targetPID: pid)
                 historyStore.append(entry)
             }
 
@@ -232,11 +241,21 @@ class DictationViewModel: ObservableObject {
                 state = .done(finalText)
 
                 if !finalText.isEmpty {
-                    if let app = frontmostAppBeforeRecording {
-                        app.activate(options: .activateIgnoringOtherApps)
+                    let selfBundle = Bundle.main.bundleIdentifier
+                    let targetApp = frontmostAppBeforeRecording
+                    if let app = targetApp, app.bundleIdentifier != selfBundle {
+                        dictLog.info("activating: bundleID=\(app.bundleIdentifier ?? "nil") PID=\(app.processIdentifier)")
+                        app.activate()
                         try? await Task.sleep(nanoseconds: 400_000_000)
+                        let nowFront = NSWorkspace.shared.frontmostApplication
+                        dictLog.info("after 400ms sleep: frontmost=\(nowFront?.bundleIdentifier ?? "nil") PID=\(nowFront?.processIdentifier ?? 0) AXTrusted=\(AXIsProcessTrusted())")
+                    } else {
+                        let captured = targetApp?.bundleIdentifier ?? "nil"
+                        let nowFront = NSWorkspace.shared.frontmostApplication?.bundleIdentifier ?? "nil"
+                        dictLog.info("frontmostAppBeforeRecording=\(captured) — skipping activate, pasting to current frontmost=\(nowFront)")
                     }
-                    outputManager.output(finalText)
+                    let pid = targetApp.map { pid_t($0.processIdentifier) }
+                    outputManager.output(finalText, targetPID: pid)
                     historyStore.append(entry)
                 }
 

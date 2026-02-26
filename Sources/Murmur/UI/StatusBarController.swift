@@ -25,7 +25,12 @@ class StatusBarController {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
 
         if let button = statusItem.button {
-            button.image = NSImage(systemSymbolName: "waveform.circle", accessibilityDescription: "Dictation")
+            if let icon = NSImage(named: "MenuBarIcon") {
+                icon.isTemplate = true
+                button.image = icon
+            } else {
+                button.image = NSImage(systemSymbolName: "waveform.circle", accessibilityDescription: "Dictation")
+            }
             button.action = #selector(handleClick)
             button.sendAction(on: [.leftMouseUp, .rightMouseUp])
             button.target = self
@@ -68,15 +73,16 @@ class StatusBarController {
         flashTimer?.invalidate()
         flashTimer = nil
 
+        let customIcon = NSImage(named: "MenuBarIcon").map { img -> NSImage in img.isTemplate = true; return img }
         switch state {
         case .idle, .done, .cancelled:
             button.contentTintColor = viewModel.isModelReady ? nil : .secondaryLabelColor
-            button.image = NSImage(systemSymbolName: "waveform.circle", accessibilityDescription: "Dictation")
+            button.image = customIcon ?? NSImage(systemSymbolName: "waveform.circle", accessibilityDescription: "Dictation")
         case .recording:
-            button.image = NSImage(systemSymbolName: "waveform.circle.fill", accessibilityDescription: "Recording")
+            button.image = customIcon ?? NSImage(systemSymbolName: "waveform.circle.fill", accessibilityDescription: "Recording")
             button.contentTintColor = .systemRed
         case .transcribing, .loading:
-            button.image = NSImage(systemSymbolName: "waveform", accessibilityDescription: "Transcribing")
+            button.image = customIcon ?? NSImage(systemSymbolName: "waveform", accessibilityDescription: "Transcribing")
             button.contentTintColor = .systemOrange
             var bright = true
             flashTimer = Timer.scheduledTimer(withTimeInterval: 0.55, repeats: true) { [weak self] _ in

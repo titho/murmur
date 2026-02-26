@@ -49,3 +49,9 @@ whisper.cpp/
 # Environment
 .env
 *.env.local
+
+# Personal planning docs (generated, not source)
+docs
+
+# Generated build artifacts
+Murmur.icns
