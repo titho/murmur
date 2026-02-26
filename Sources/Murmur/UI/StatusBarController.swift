@@ -10,6 +10,7 @@ class StatusBarController {
     private var cancellables = Set<AnyCancellable>()
     private let viewModel: DictationViewModel
     private var settingsWindow: NSWindow?
+    private var aboutWindow: NSWindow?
     private var pillHUD: PillHUDController!
     private var flashTimer: Timer?
 
@@ -82,7 +83,8 @@ class StatusBarController {
             button.image = customIcon ?? NSImage(systemSymbolName: "waveform.circle.fill", accessibilityDescription: "Recording")
             button.contentTintColor = .systemRed
         case .transcribing, .loading:
-            button.image = customIcon ?? NSImage(systemSymbolName: "waveform", accessibilityDescription: "Transcribing")
+            // Use ellipsis SF symbol — clearly different from the waveform, universally means "processing"
+            button.image = NSImage(systemSymbolName: "ellipsis", accessibilityDescription: "Transcribing")
             button.contentTintColor = .systemOrange
             var bright = true
             flashTimer = Timer.scheduledTimer(withTimeInterval: 0.55, repeats: true) { [weak self] _ in
@@ -131,6 +133,10 @@ class StatusBarController {
         fileItem.target = self
         fileItem.isEnabled = viewModel.isModelReady && viewModel.state == .idle
         menu.addItem(fileItem)
+
+        let aboutItem = NSMenuItem(title: "About Murmur", action: #selector(showAbout), keyEquivalent: "")
+        aboutItem.target = self
+        menu.addItem(aboutItem)
 
         let settingsItem = NSMenuItem(title: "Settings...", action: #selector(openSettings), keyEquivalent: ",")
         settingsItem.target = self
@@ -208,6 +214,38 @@ class StatusBarController {
         NSApp.activate(ignoringOtherApps: true)
     }
 
+    @objc private func showAbout() {
+        if aboutWindow == nil {
+            let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
+            let view = AboutView(version: version)
+            let window = NSWindow(
+                contentRect: NSRect(x: 0, y: 0, width: 300, height: 210),
+                styleMask: [.titled, .closable],
+                backing: .buffered,
+                defer: false
+            )
+            window.title = "About Murmur"
+            window.isReleasedWhenClosed = false
+            let hosting = NSHostingView(rootView: view)
+            hosting.sizingOptions = []
+            window.contentView = hosting
+            window.center()
+
+            NSApp.setActivationPolicy(.regular)
+            NotificationCenter.default.addObserver(
+                forName: NSWindow.willCloseNotification,
+                object: window,
+                queue: .main
+            ) { [weak self] _ in
+                NSApp.setActivationPolicy(.accessory)
+                self?.aboutWindow = nil
+            }
+            aboutWindow = window
+        }
+        aboutWindow?.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+    }
+
     @objc private func stopRecording() {
         Task { @MainActor in
             viewModel.stopAndTranscribe()
@@ -232,5 +270,30 @@ class StatusBarController {
             NSEvent.removeMonitor(monitor)
             eventMonitor = nil
         }
+    }
+}
+
+private struct AboutView: View {
+    let version: String
+
+    var body: some View {
+        VStack(spacing: 10) {
+            Image(nsImage: NSApp.applicationIconImage)
+                .resizable()
+                .frame(width: 80, height: 80)
+            Text("Murmur")
+                .font(.title2).bold()
+            Text("Version \(version)")
+                .foregroundStyle(.secondary)
+                .font(.subheadline)
+            Text("Quiet, local, instant dictation for macOS.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+            Link("github.com/titho/murmur", destination: URL(string: "https://github.com/titho/murmur")!)
+                .font(.caption)
+        }
+        .padding(28)
+        .frame(width: 300)
     }
 }

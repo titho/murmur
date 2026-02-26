@@ -49,6 +49,7 @@ targets:
         NSAppleEventsUsageDescription: "Murmur uses Accessibility to paste transcribed text into apps."
         LSUIElement: true
         LSMinimumSystemVersion: "14.0"
+        NSHumanReadableCopyright: "© 2026 Stoil Yankov"
 
     entitlements:
       path: Murmur.entitlements
