@@ -38,7 +38,7 @@ Existing dictation tools either require an internet connection, lock you into a 
 ## Install
 
 ```bash
-git clone https://github.com/yourusername/murmur
+git clone https://github.com/titho/murmur
 cd murmur
 ./run.sh
 ```
@@ -56,11 +56,11 @@ WhisperKit and all dependencies are fetched via Swift Package Manager on first b
 
 Open Settings from the menu bar icon (or right-click → Settings...):
 
-| Tab | What's there |
-|-----|-------------|
-| General | Output mode, Whisper model, AI cleanup, recording timeout |
-| Keybinding | Remap toggle and cancel hotkeys |
-| History | Past transcriptions, token counts, cost, storage location |
+| Tab        | What's there                                              |
+| ---------- | --------------------------------------------------------- |
+| General    | Output mode, Whisper model, AI cleanup, recording timeout |
+| Keybinding | Remap toggle and cancel hotkeys                           |
+| History    | Past transcriptions, token counts, cost, storage location |
 
 ## AI Cleanup (Optional)
 

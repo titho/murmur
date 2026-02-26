@@ -11,6 +11,7 @@ class StatusBarController {
     private let viewModel: DictationViewModel
     private var settingsWindow: NSWindow?
     private var pillHUD: PillHUDController!
+    private var flashTimer: Timer?
 
     init(viewModel: DictationViewModel) {
         self.viewModel = viewModel
@@ -35,10 +36,11 @@ class StatusBarController {
         popover = NSPopover()
         popover.contentSize = NSSize(width: 320, height: 200)
         popover.behavior = .transient
-        popover.animates = true
+        popover.animates = false  // animates=true triggers layout exception on macOS 26 (NSHostingView.updateAnimatedWindowSize crash)
 
         let contentView = RecordingPanelView()
             .environmentObject(viewModel)
+            .environmentObject(viewModel.resourceMonitor)
 
         popover.contentViewController = NSHostingController(rootView: contentView)
     }
@@ -63,21 +65,24 @@ class StatusBarController {
     private func updateIcon(for state: RecordingState) {
         guard let button = statusItem.button else { return }
 
+        flashTimer?.invalidate()
+        flashTimer = nil
+
         switch state {
         case .idle, .done, .cancelled:
-            if !viewModel.isModelReady {
-                button.image = NSImage(systemSymbolName: "waveform.circle", accessibilityDescription: "No model")
-                button.contentTintColor = .secondaryLabelColor
-            } else {
-                button.image = NSImage(systemSymbolName: "waveform.circle", accessibilityDescription: "Dictation")
-                button.contentTintColor = nil
-            }
+            button.contentTintColor = viewModel.isModelReady ? nil : .secondaryLabelColor
+            button.image = NSImage(systemSymbolName: "waveform.circle", accessibilityDescription: "Dictation")
         case .recording:
             button.image = NSImage(systemSymbolName: "waveform.circle.fill", accessibilityDescription: "Recording")
             button.contentTintColor = .systemRed
         case .transcribing, .loading:
             button.image = NSImage(systemSymbolName: "waveform", accessibilityDescription: "Transcribing")
             button.contentTintColor = .systemOrange
+            var bright = true
+            flashTimer = Timer.scheduledTimer(withTimeInterval: 0.55, repeats: true) { [weak self] _ in
+                bright.toggle()
+                self?.statusItem.button?.contentTintColor = bright ? .systemOrange : .secondaryLabelColor
+            }
         case .error:
             button.image = NSImage(systemSymbolName: "exclamationmark.circle", accessibilityDescription: "Error")
             button.contentTintColor = .systemYellow
@@ -115,6 +120,11 @@ class StatusBarController {
         menu.addItem(stateItem)
 
         menu.addItem(.separator())
+
+        let fileItem = NSMenuItem(title: "Transcribe file…", action: #selector(transcribeFile), keyEquivalent: "")
+        fileItem.target = self
+        fileItem.isEnabled = viewModel.isModelReady && viewModel.state == .idle
+        menu.addItem(fileItem)
 
         let settingsItem = NSMenuItem(title: "Settings...", action: #selector(openSettings), keyEquivalent: ",")
         settingsItem.target = self
@@ -155,6 +165,7 @@ class StatusBarController {
                 .environmentObject(viewModel)
                 .environmentObject(viewModel.historyStore)
                 .environmentObject(viewModel.whisperService)
+                .environmentObject(viewModel.resourceMonitor)
 
             let window = NSWindow(
                 contentRect: NSRect(x: 0, y: 0, width: 680, height: 520),
@@ -163,7 +174,10 @@ class StatusBarController {
                 defer: false
             )
             window.title = "Settings"
-            window.contentView = NSHostingView(rootView: content)
+            window.isReleasedWhenClosed = false  // Prevent AppKit zombie: default true causes use-after-free with ARC
+            let hostingView = NSHostingView(rootView: content)
+            hostingView.sizingOptions = []  // Prevent auto-resize crash on macOS 26
+            window.contentView = hostingView
             window.toolbar = nil  // Remove the sidebar toggle button added by NavigationSplitView
             window.center()
             window.setFrameAutosaveName("SettingsWindow")
@@ -172,13 +186,14 @@ class StatusBarController {
             // Switch to regular activation policy so Settings appears in Cmd+Tab
             NSApp.setActivationPolicy(.regular)
 
-            // Restore accessory policy when window closes
+            // Restore accessory policy when window closes; nil settingsWindow so next open gets a fresh instance
             NotificationCenter.default.addObserver(
                 forName: NSWindow.willCloseNotification,
                 object: window,
                 queue: .main
-            ) { _ in
+            ) { [weak self] _ in
                 NSApp.setActivationPolicy(.accessory)
+                self?.settingsWindow = nil
             }
 
             settingsWindow = window
@@ -190,6 +205,12 @@ class StatusBarController {
     @objc private func stopRecording() {
         Task { @MainActor in
             viewModel.stopAndTranscribe()
+        }
+    }
+
+    @objc private func transcribeFile() {
+        Task { @MainActor in
+            viewModel.transcribeFile()
         }
     }
 

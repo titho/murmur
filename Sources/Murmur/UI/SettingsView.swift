@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import ServiceManagement
 
 // MARK: - Sidebar navigation
 
@@ -64,13 +65,34 @@ private struct GeneralSettingsView: View {
     @AppStorage("outputMode")           private var outputMode: OutputMode = .clipboardAndPaste
     @AppStorage("maxRecordingSeconds")  private var maxRecordingSeconds: Int = 120
     @AppStorage("maxRecordingEnabled")  private var maxRecordingEnabled: Bool = true
+    @AppStorage("pillEnabled")          private var pillEnabled: Bool = true
     @AppStorage("whisperPromptEnabled") private var whisperPromptEnabled: Bool = false
     @AppStorage("whisperPrompt")        private var whisperPrompt: String = ""
+    @AppStorage("launchAtLogin")        private var launchAtLogin: Bool = false
 
     static let defaultWhisperPrompt = "Clean, properly punctuated text. No filler words or false starts."
 
     var body: some View {
         Form {
+            Section {
+                Toggle("Launch at login", isOn: $launchAtLogin)
+                    .onChange(of: launchAtLogin) { _, enabled in
+                        do {
+                            if enabled {
+                                try SMAppService.mainApp.register()
+                            } else {
+                                try SMAppService.mainApp.unregister()
+                            }
+                        } catch {
+                            launchAtLogin = !enabled // revert if registration fails
+                        }
+                    }
+            } footer: {
+                Text("Requires Murmur to be installed at ~/Applications/Murmur.app (run ./run.sh once).")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
             Section("Output") {
                 Picker("After dictation", selection: $outputMode) {
                     Text("Copy to clipboard + paste").tag(OutputMode.clipboardAndPaste)
@@ -94,6 +116,7 @@ private struct GeneralSettingsView: View {
             }
 
             Section("Recording") {
+                Toggle("Show status pill during recording", isOn: $pillEnabled)
                 Toggle("Limit recording length", isOn: $maxRecordingEnabled)
                 if maxRecordingEnabled {
                     Stepper(value: $maxRecordingSeconds, in: 30...300, step: 30) {
@@ -166,6 +189,12 @@ private struct ModelsSettingsView: View {
                                         downloadError = error.localizedDescription
                                     }
                                 }
+                            },
+                            onDelete: {
+                                viewModel.deleteModel(variant: model.id)
+                                if selectedModel == model.id {
+                                    selectedModel = WhisperModel.default.id
+                                }
                             }
                         )
                     }
@@ -223,6 +252,7 @@ private struct ModelRow: View {
     let isDownloaded: Bool
     let onSelect: () -> Void
     let onDownload: () -> Void
+    let onDelete: () -> Void
 
     private var borderColor: Color {
         if model.isRecommended { return .green }
@@ -335,6 +365,13 @@ private struct ModelRow: View {
                             .buttonStyle(.bordered)
                             .controlSize(.small)
                     }
+                    Button(action: onDelete) {
+                        Image(systemName: "trash")
+                            .font(.caption)
+                    }
+                    .buttonStyle(.borderless)
+                    .foregroundStyle(.secondary)
+                    .help("Delete model from disk")
                 } else {
                     Button("Download") { onDownload() }
                         .buttonStyle(.bordered)

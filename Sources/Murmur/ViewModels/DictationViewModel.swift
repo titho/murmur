@@ -2,6 +2,7 @@ import Foundation
 import AppKit
 import AVFoundation
 import Combine
+import UniformTypeIdentifiers
 
 enum RecordingState: Equatable {
     case idle
@@ -22,6 +23,7 @@ class DictationViewModel: ObservableObject {
 
     let historyStore = HistoryStore()
     let whisperService = WhisperService()
+    let resourceMonitor = ResourceMonitor()
 
     private let audioRecorder = AudioRecorder()
     private let outputManager = OutputManager()
@@ -62,6 +64,8 @@ class DictationViewModel: ObservableObject {
             }
         }
 
+        resourceMonitor.start()
+
         Task {
             await loadModelIfNeeded()
         }
@@ -69,6 +73,7 @@ class DictationViewModel: ObservableObject {
 
     func cleanup() {
         hotkeyManager.unregister()
+        resourceMonitor.stop()
         recordingTimer?.cancel()
         recordingTimer = nil
         if case .recording = state {
@@ -138,6 +143,54 @@ class DictationViewModel: ObservableObject {
         }
     }
 
+    func transcribeFile() {
+        guard isModelReady else { return }
+        // Capture frontmost app before panel steals focus
+        let targetApp = NSWorkspace.shared.frontmostApplication
+
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = true
+        panel.canChooseDirectories = false
+        panel.allowsMultipleSelection = false
+        panel.allowedContentTypes = [.audio]
+        panel.prompt = "Transcribe"
+        panel.message = "Select an audio file to transcribe"
+
+        panel.begin { [weak self] response in
+            guard let self, response == .OK, let url = panel.url else { return }
+            Task { @MainActor in
+                await self.transcribeAudioFile(url: url, targetApp: targetApp)
+            }
+        }
+    }
+
+    private func transcribeAudioFile(url: URL, targetApp: NSRunningApplication?) async {
+        state = .transcribing
+        do {
+            let prompt = whisperInitialPrompt
+            let text = try await whisperService.transcribe(audioURL: url, initialPrompt: prompt)
+            let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+            let (finalText, entry) = await applyCleanupIfEnabled(trimmed)
+
+            lastTranscription = finalText
+            state = .done(finalText)
+
+            if !finalText.isEmpty {
+                if let app = targetApp {
+                    app.activate(options: .activateIgnoringOtherApps)
+                    try? await Task.sleep(nanoseconds: 400_000_000) // 0.4s for focus to settle
+                }
+                outputManager.output(finalText)
+                historyStore.append(entry)
+            }
+
+            try? await Task.sleep(nanoseconds: 2_500_000_000)
+            if case .done = state { state = .idle }
+        } catch {
+            state = .error(error.localizedDescription)
+        }
+    }
+
     func stopAndTranscribe() {
         recordingTimer?.cancel()
         recordingTimer = nil
@@ -161,7 +214,7 @@ class DictationViewModel: ObservableObject {
                     // Restore focus to original app before pasting
                     if let app = frontmostAppBeforeRecording {
                         app.activate(options: .activateIgnoringOtherApps)
-                        try? await Task.sleep(nanoseconds: 150_000_000) // 0.15s for focus to settle
+                        try? await Task.sleep(nanoseconds: 400_000_000) // 0.4s for focus to settle
                     }
                     outputManager.output(finalText)
                     historyStore.append(entry)
@@ -195,6 +248,8 @@ class DictationViewModel: ObservableObject {
             try await whisperService.loadModel(variant: variant)
             isModelReady = true
             state = .idle
+            // Prime ANE/GPU so first real dictation isn't slow
+            Task { await whisperService.warmup() }
         } catch {
             state = .error("Failed to load model: \(error.localizedDescription)")
         }
@@ -209,6 +264,17 @@ class DictationViewModel: ObservableObject {
     func reloadModel() async {
         isModelReady = false
         await loadModelIfNeeded()
+    }
+
+    /// Delete a downloaded model from disk. If it was loaded, resets to idle.
+    func deleteModel(variant: String) {
+        whisperService.deleteModel(variant: variant)
+        // If deleted model was selected and loaded, reset
+        let selected = UserDefaults.standard.string(forKey: "selectedModel") ?? WhisperModel.default.id
+        if variant == selected {
+            isModelReady = false
+            state = .idle
+        }
     }
 
     // MARK: - Private

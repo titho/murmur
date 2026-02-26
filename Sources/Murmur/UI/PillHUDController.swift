@@ -28,6 +28,10 @@ class PillHUDController {
     }
 
     private func handleStateChange(_ state: RecordingState) {
+        guard UserDefaults.standard.bool(forKey: "pillEnabled") else {
+            if window?.isVisible == true { hideWindow() }
+            return
+        }
         switch state {
         case .recording, .transcribing, .cancelled:
             if window == nil { createWindow() }
@@ -58,8 +62,13 @@ class PillHUDController {
         panel.collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle]
         panel.isMovableByWindowBackground = false
 
-        let content = PillHUDView().environmentObject(vm)
-        panel.contentView = NSHostingView(rootView: content)
+        let content = PillHUDView()
+            .environmentObject(vm)
+            .frame(width: pillWidth, height: pillHeight)
+
+        let hostingView = NSHostingView(rootView: content)
+        hostingView.sizingOptions = []  // Prevent NSHostingView from auto-resizing window (crashes on macOS 26)
+        panel.contentView = hostingView
 
         self.window = panel
     }

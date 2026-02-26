@@ -2,6 +2,7 @@ import SwiftUI
 
 struct RecordingPanelView: View {
     @EnvironmentObject var viewModel: DictationViewModel
+    @EnvironmentObject var resourceMonitor: ResourceMonitor
 
     var body: some View {
         VStack(spacing: 0) {
@@ -63,9 +64,34 @@ struct RecordingPanelView: View {
                 }
                 .padding(.vertical, 8)
             }
+
+            // Resource footer — always visible
+            Divider()
+            resourceFooter
         }
         .frame(width: 320)
         .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private var resourceFooter: some View {
+        HStack(spacing: 12) {
+            Label(
+                String(format: "%.0f MB", resourceMonitor.memoryMB),
+                systemImage: "memorychip"
+            )
+            Label(
+                String(format: "%.1f%% CPU", resourceMonitor.cpuPercent),
+                systemImage: "cpu"
+            )
+            Spacer()
+            let h = Int(resourceMonitor.uptimeSeconds) / 3600
+            let m = (Int(resourceMonitor.uptimeSeconds) % 3600) / 60
+            Text(h > 0 ? "\(h)h \(m)m" : "\(m)m")
+        }
+        .font(.system(size: 10, design: .monospaced))
+        .foregroundStyle(.tertiary)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 6)
     }
 
     // MARK: - Sub-views
@@ -90,6 +116,18 @@ struct RecordingPanelView: View {
                             .multilineTextAlignment(.center)
                             .padding(.top, 4)
                     }
+
+                    Divider().padding(.horizontal, 16)
+
+                    Button {
+                        viewModel.transcribeFile()
+                    } label: {
+                        Label("Import audio file…", systemImage: "waveform.badge.plus")
+                            .font(.callout)
+                    }
+                    .buttonStyle(.borderless)
+                    .foregroundStyle(.secondary)
+                    .padding(.bottom, 8)
                 }
             } else {
                 noModelView
