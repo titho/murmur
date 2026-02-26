@@ -114,7 +114,6 @@ class DictationViewModel: ObservableObject {
     }
 
     func startRecording() {
-        // Capture the frontmost app before we steal focus
         frontmostAppBeforeRecording = NSWorkspace.shared.frontmostApplication
 
         AVCaptureDevice.requestAccess(for: .audio) { [weak self] granted in
@@ -145,7 +144,6 @@ class DictationViewModel: ObservableObject {
 
     func transcribeFile() {
         guard isModelReady else { return }
-        // Capture frontmost app before panel steals focus
         let targetApp = NSWorkspace.shared.frontmostApplication
 
         let panel = NSOpenPanel()
@@ -167,10 +165,22 @@ class DictationViewModel: ObservableObject {
     private func transcribeAudioFile(url: URL, targetApp: NSRunningApplication?) async {
         state = .transcribing
         do {
+            let duration = audioDuration(url: url)
             let prompt = whisperInitialPrompt
+            let transcribeStart = Date()
             let text = try await whisperService.transcribe(audioURL: url, initialPrompt: prompt)
+            let transcribeTime = Date().timeIntervalSince(transcribeStart)
+            let cpu = resourceMonitor.cpuPercent
+            let mem = resourceMonitor.memoryMB
+
             let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-            let (finalText, entry) = await applyCleanupIfEnabled(trimmed)
+            let (finalText, entry) = await applyCleanupIfEnabled(
+                trimmed,
+                audioDurationSeconds: duration,
+                transcriptionTimeSeconds: transcribeTime,
+                cpuPercent: cpu,
+                memoryMB: mem
+            )
 
             lastTranscription = finalText
             state = .done(finalText)
@@ -178,7 +188,7 @@ class DictationViewModel: ObservableObject {
             if !finalText.isEmpty {
                 if let app = targetApp {
                     app.activate(options: .activateIgnoringOtherApps)
-                    try? await Task.sleep(nanoseconds: 400_000_000) // 0.4s for focus to settle
+                    try? await Task.sleep(nanoseconds: 400_000_000)
                 }
                 outputManager.output(finalText)
                 historyStore.append(entry)
@@ -201,20 +211,30 @@ class DictationViewModel: ObservableObject {
                 let wavURL = try await audioRecorder.stop()
                 waveformSamples = Array(repeating: 0, count: 60)
 
+                let duration = audioDuration(url: wavURL)
                 let prompt = whisperInitialPrompt
+                let transcribeStart = Date()
                 let text = try await whisperService.transcribe(audioURL: wavURL, initialPrompt: prompt)
+                let transcribeTime = Date().timeIntervalSince(transcribeStart)
+                let cpu = resourceMonitor.cpuPercent
+                let mem = resourceMonitor.memoryMB
 
                 let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-                let (finalText, entry) = await applyCleanupIfEnabled(trimmed)
+                let (finalText, entry) = await applyCleanupIfEnabled(
+                    trimmed,
+                    audioDurationSeconds: duration,
+                    transcriptionTimeSeconds: transcribeTime,
+                    cpuPercent: cpu,
+                    memoryMB: mem
+                )
 
                 lastTranscription = finalText
                 state = .done(finalText)
 
                 if !finalText.isEmpty {
-                    // Restore focus to original app before pasting
                     if let app = frontmostAppBeforeRecording {
                         app.activate(options: .activateIgnoringOtherApps)
-                        try? await Task.sleep(nanoseconds: 400_000_000) // 0.4s for focus to settle
+                        try? await Task.sleep(nanoseconds: 400_000_000)
                     }
                     outputManager.output(finalText)
                     historyStore.append(entry)
@@ -237,7 +257,6 @@ class DictationViewModel: ObservableObject {
         let variant = UserDefaults.standard.string(forKey: "selectedModel") ?? WhisperModel.default.id
 
         guard whisperService.isModelDownloaded(variant) else {
-            // No model on disk — stay idle, user must download from Settings > Models
             isModelReady = false
             state = .idle
             return
@@ -248,28 +267,23 @@ class DictationViewModel: ObservableObject {
             try await whisperService.loadModel(variant: variant)
             isModelReady = true
             state = .idle
-            // Prime ANE/GPU so first real dictation isn't slow
             Task { await whisperService.warmup() }
         } catch {
             state = .error("Failed to load model: \(error.localizedDescription)")
         }
     }
 
-    /// Called by the Models settings UI to download a specific model.
     func downloadModel(variant: String) async throws {
         try await whisperService.downloadModel(variant: variant)
     }
 
-    /// Reload the currently selected model (e.g. after user changes selection).
     func reloadModel() async {
         isModelReady = false
         await loadModelIfNeeded()
     }
 
-    /// Delete a downloaded model from disk. If it was loaded, resets to idle.
     func deleteModel(variant: String) {
         whisperService.deleteModel(variant: variant)
-        // If deleted model was selected and loaded, reset
         let selected = UserDefaults.standard.string(forKey: "selectedModel") ?? WhisperModel.default.id
         if variant == selected {
             isModelReady = false
@@ -277,31 +291,73 @@ class DictationViewModel: ObservableObject {
         }
     }
 
+    func rerunCleanup(entryID: UUID) async {
+        guard let entry = historyStore.entries.first(where: { $0.id == entryID }),
+              let apiKey = CleanupService.resolvedApiKey() else { return }
+
+        let modelRaw = UserDefaults.standard.string(forKey: "cleanupModel") ?? CleanupModel.haiku.rawValue
+        let model = CleanupModel(rawValue: modelRaw) ?? .haiku
+
+        do {
+            let result = try await CleanupService.clean(entry.text, model: model, apiKey: apiKey)
+            var updated = entry
+            updated.cleanedText = result.text
+            updated.inputTokens = result.inputTokens
+            updated.outputTokens = result.outputTokens
+            updated.cleanupModel = modelRaw
+            historyStore.update(updated)
+        } catch {
+            // UI handles error state via @State on the calling view
+        }
+    }
+
     // MARK: - Private
 
-    private func applyCleanupIfEnabled(_ text: String) async -> (String, TranscriptionEntry) {
+    private func audioDuration(url: URL) -> Double? {
+        guard let file = try? AVAudioFile(forReading: url) else { return nil }
+        return Double(file.length) / file.fileFormat.sampleRate
+    }
+
+    private func applyCleanupIfEnabled(
+        _ rawText: String,
+        audioDurationSeconds: Double?,
+        transcriptionTimeSeconds: Double?,
+        cpuPercent: Double?,
+        memoryMB: Double?
+    ) async -> (String, TranscriptionEntry) {
+        let whisperModelUsed = UserDefaults.standard.string(forKey: "selectedModel")
+
+        func makeEntry(cleanedText: String? = nil, inputTok: Int? = nil, outputTok: Int? = nil, model: String? = nil) -> TranscriptionEntry {
+            TranscriptionEntry(
+                text: rawText,
+                cleanedText: cleanedText,
+                inputTokens: inputTok,
+                outputTokens: outputTok,
+                cleanupModel: model,
+                audioDurationSeconds: audioDurationSeconds,
+                transcriptionTimeSeconds: transcriptionTimeSeconds,
+                whisperModel: whisperModelUsed,
+                cpuPercentAtTranscription: cpuPercent,
+                memoryMBAtTranscription: memoryMB
+            )
+        }
+
         guard
-            !text.isEmpty,
+            !rawText.isEmpty,
             UserDefaults.standard.bool(forKey: "cleanupEnabled"),
             let apiKey = CleanupService.resolvedApiKey()
         else {
-            return (text, TranscriptionEntry(text: text))
+            return (rawText, makeEntry())
         }
 
         let modelRaw = UserDefaults.standard.string(forKey: "cleanupModel") ?? CleanupModel.haiku.rawValue
         let model = CleanupModel(rawValue: modelRaw) ?? .haiku
 
         do {
-            let result = try await CleanupService.clean(text, model: model, apiKey: apiKey)
-            let entry = TranscriptionEntry(
-                text: result.text,
-                inputTokens: result.inputTokens,
-                outputTokens: result.outputTokens,
-                cleanupModel: modelRaw
-            )
-            return (result.text, entry)
+            let result = try await CleanupService.clean(rawText, model: model, apiKey: apiKey)
+            return (result.text, makeEntry(cleanedText: result.text, inputTok: result.inputTokens, outputTok: result.outputTokens, model: modelRaw))
         } catch {
-            return (text, TranscriptionEntry(text: text))
+            return (rawText, makeEntry())
         }
     }
 
