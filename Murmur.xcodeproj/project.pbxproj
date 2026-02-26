@@ -17,6 +17,7 @@
 		60A583A09F5E2B557240A6A7 /* AudioRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 184FE11D216AE08C9313625C /* AudioRecorder.swift */; };
 		643ABEDAEE0270925156BA56 /* TranscriptionEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27E3B10230984DFEB8BA743B /* TranscriptionEntry.swift */; };
 		A6F3F962FC2549A792A8C794 /* StatusBarController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2156F829F2B2479021AAFC1 /* StatusBarController.swift */; };
+		B26EBB581E56F79916641F62 /* CleanupHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6793632B28727DA1EE3B25C /* CleanupHistoryView.swift */; };
 		B695674187C8108F60CD4F81 /* MurmurApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 141E84EBCBA767FF640CA205 /* MurmurApp.swift */; };
 		C665F887B4CF8E7F362101E2 /* CleanupService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B0F0C3264FA209BAC30A66E /* CleanupService.swift */; };
 		C7E5349723B41A444AD788A3 /* PillHUDController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9111A4B7EEF39372D4E65D46 /* PillHUDController.swift */; };
@@ -48,6 +49,7 @@
 		9111A4B7EEF39372D4E65D46 /* PillHUDController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PillHUDController.swift; sourceTree = "<group>"; };
 		9F3223C5D0B50939CB0115A8 /* OutputManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutputManager.swift; sourceTree = "<group>"; };
 		AE5EE4CFB52668BC58205C75 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		C6793632B28727DA1EE3B25C /* CleanupHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CleanupHistoryView.swift; sourceTree = "<group>"; };
 		C834EC374C4A986C47F46292 /* Murmur.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Murmur.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D8BE9396E3128B8FB9C722F2 /* PillHUDView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PillHUDView.swift; sourceTree = "<group>"; };
 		DCC885BD31BDCC0F8A79158D /* ResourceMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResourceMonitor.swift; sourceTree = "<group>"; };
@@ -78,6 +80,7 @@
 		38DFAB3BC72C0F02FDE1BC14 /* UI */ = {
 			isa = PBXGroup;
 			children = (
+				C6793632B28727DA1EE3B25C /* CleanupHistoryView.swift */,
 				2D9429303790DA1D1F15617C /* HistoryView.swift */,
 				01374321171C7671FB9E3DA8 /* KeybindingView.swift */,
 				9111A4B7EEF39372D4E65D46 /* PillHUDController.swift */,
@@ -233,6 +236,7 @@
 			files = (
 				DDAC8EEB282410036EA1F9D8 /* AppDelegate.swift in Sources */,
 				60A583A09F5E2B557240A6A7 /* AudioRecorder.swift in Sources */,
+				B26EBB581E56F79916641F62 /* CleanupHistoryView.swift in Sources */,
 				C665F887B4CF8E7F362101E2 /* CleanupService.swift in Sources */,
 				F997F3D9251CF77B2E060DBE /* DictationViewModel.swift in Sources */,
 				42721B2D704DFD5FC4811FAF /* HistoryStore.swift in Sources */,

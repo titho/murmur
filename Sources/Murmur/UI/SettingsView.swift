@@ -12,6 +12,7 @@ enum SettingsSection: String, CaseIterable, Identifiable {
     case keybinding = "Keybinding"
     case storage   = "Storage"
     case history   = "History"
+    case cleanups  = "Cleanups"
 
     var id: String { rawValue }
 
@@ -23,6 +24,7 @@ enum SettingsSection: String, CaseIterable, Identifiable {
         case .keybinding: return "keyboard"
         case .storage:    return "externaldrive"
         case .history:    return "clock.arrow.circlepath"
+        case .cleanups:   return "sparkles.rectangle.stack"
         }
     }
 }
@@ -51,6 +53,7 @@ struct SettingsView: View {
                 case .keybinding: KeybindingView()
                 case .storage:    StorageSettingsView()
                 case .history:    HistoryView()
+                case .cleanups:   CleanupHistoryView()
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
