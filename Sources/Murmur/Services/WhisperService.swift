@@ -1,6 +1,23 @@
 import Foundation
 import WhisperKit
 
+// MARK: - Language catalog
+
+struct DictationLanguage: Identifiable, Equatable {
+    let id: String          // ISO 639-1 code, or "" for auto-detect
+    let displayName: String
+    let shortName: String   // shown in pill buttons
+
+    static let catalog: [DictationLanguage] = [
+        DictationLanguage(id: "",   displayName: "Auto-detect", shortName: "Auto"),
+        DictationLanguage(id: "en", displayName: "English",     shortName: "EN"),
+        DictationLanguage(id: "bg", displayName: "Bulgarian",   shortName: "BG"),
+        DictationLanguage(id: "es", displayName: "Spanish",     shortName: "ES"),
+        DictationLanguage(id: "de", displayName: "German",      shortName: "DE"),
+        DictationLanguage(id: "fr", displayName: "French",      shortName: "FR"),
+    ]
+}
+
 // MARK: - Model catalog
 
 struct WhisperModel: Identifiable, Hashable {
