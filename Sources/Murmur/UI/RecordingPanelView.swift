@@ -113,7 +113,7 @@ struct RecordingPanelView: View {
                     HStack(spacing: 4) {
                         Image(systemName: "exclamationmark.triangle.fill")
                             .foregroundStyle(.orange)
-                        Text("English-only model — switch to Large v3 Turbo for other languages")
+                        Text("English-only model — switch to a multilingual model for other languages")
                             .foregroundStyle(.secondary)
                     }
                     .font(.system(size: 10))

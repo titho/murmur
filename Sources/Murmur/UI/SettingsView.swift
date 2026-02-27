@@ -148,7 +148,7 @@ private struct GeneralSettingsView: View {
                     let currentModel = WhisperModel.catalog.first { $0.id == selectedModel }
                     if currentModel?.isEnglishOnly == true {
                         Label(
-                            "English-only model selected — switch to Large v3 Turbo for other languages",
+                            "English-only model selected — switch to a multilingual model for other languages",
                             systemImage: "exclamationmark.triangle.fill"
                         )
                         .font(.caption)
