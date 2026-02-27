@@ -191,6 +191,23 @@ private struct ModelsSettingsView: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            // Guidance banner
+            HStack(alignment: .top, spacing: 8) {
+                Image(systemName: "lightbulb.fill")
+                    .font(.caption)
+                    .foregroundStyle(.yellow)
+                    .padding(.top, 1)
+                Text("**Base** is the best starting point for most English users — it feels near-instant for short clips. Step up to **Large v3 Turbo** only if you need other languages or significantly better accuracy on difficult audio.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            Divider()
+
             ScrollView {
                 LazyVStack(spacing: 10) {
                     ForEach(WhisperModel.catalog) { model in

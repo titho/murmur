@@ -26,6 +26,8 @@
 	<true/>
 	<key>NSAppleEventsUsageDescription</key>
 	<string>Murmur uses Accessibility to paste transcribed text into apps.</string>
+	<key>NSHumanReadableCopyright</key>
+	<string>© 2026 Stoil Yankov</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Murmur needs microphone access to transcribe your speech.</string>
 </dict>

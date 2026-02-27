@@ -59,6 +59,21 @@ Grant **Accessibility** permission when prompted (System Settings → Privacy & 
 
 **AI Cleanup** — enable in Settings → General. Requires an [Anthropic API key](https://console.anthropic.com/). Only the transcribed text is ever sent to Anthropic — never audio. Token counts and cost are tracked per entry in History.
 
+## Choosing a model
+
+**Start with Base.** For everyday English dictation it feels near-instant (short clips transcribe in under a second) and produces the same output as the larger models on clear speech.
+
+| Model | Size | When to use |
+|-------|------|-------------|
+| **Base** *(recommended)* | 142 MB | Everyday English dictation. Fast, accurate, the right default. |
+| Tiny | 75 MB | Fastest possible. Use only when even Base feels slow. |
+| Small | 466 MB | Marginally better than Base on difficult audio. English only. |
+| Medium | 1.5 GB | Heavily accented or noisy English where Base misses words. |
+| **Large v3 Turbo** | 1.6 GB | Non-English languages, mixed-language speech, or technical vocabulary that smaller models mangle. Noticeably slower on short clips due to Whisper's architecture (the encoder always processes a 30-second window regardless of clip length). |
+| Large v3 | 3.1 GB | Maximum accuracy. Only practical on M2 Pro/Max or newer. |
+
+The short version: if you dictate in English and your audio is clear, Base will be faster *and* produce the same result. Move up only when you notice specific words being missed.
+
 ## License
 
 MIT

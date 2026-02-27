@@ -41,7 +41,7 @@ struct WhisperModel: Identifiable, Hashable {
             isEnglishOnly: true,
             isHeavy: false,
             isRecommended: false,
-            description: "Instant results. Good for quick notes when speed matters more than accuracy."
+            description: "Near-instant. Misses uncommon words and stumbles on fast speech, but fine for simple phrases."
         ),
         WhisperModel(
             id: "base.en",
@@ -51,8 +51,8 @@ struct WhisperModel: Identifiable, Hashable {
             accuracyRating: 3,
             isEnglishOnly: true,
             isHeavy: false,
-            isRecommended: false,
-            description: "Fast and lightweight. A solid default for everyday English dictation."
+            isRecommended: true,
+            description: "Best choice for everyday English dictation. Feels near-instant for short clips and handles continuous speech well. Start here."
         ),
         WhisperModel(
             id: "small.en",
@@ -63,7 +63,7 @@ struct WhisperModel: Identifiable, Hashable {
             isEnglishOnly: true,
             isHeavy: false,
             isRecommended: false,
-            description: "Better accuracy than Base with only a modest speed trade-off."
+            description: "Slightly better accuracy than Base on difficult audio, with a modest speed trade-off. English only."
         ),
         WhisperModel(
             id: "medium.en",
@@ -74,7 +74,7 @@ struct WhisperModel: Identifiable, Hashable {
             isEnglishOnly: true,
             isHeavy: true,
             isRecommended: false,
-            description: "High accuracy for English. Noticeably slower on older Macs."
+            description: "High English accuracy. Noticeably slower — only worth it for heavily accented or noisy audio."
         ),
         WhisperModel(
             id: "large-v3_turbo",
@@ -84,8 +84,8 @@ struct WhisperModel: Identifiable, Hashable {
             accuracyRating: 5,
             isEnglishOnly: false,
             isHeavy: true,
-            isRecommended: true,
-            description: "Best quality-to-speed ratio. Supports all languages."
+            isRecommended: false,
+            description: "Use when you need multilingual support, technical vocabulary, or the best accuracy on difficult audio. Noticeably slower than Base for short clips."
         ),
         WhisperModel(
             id: "large-v3",
@@ -96,11 +96,11 @@ struct WhisperModel: Identifiable, Hashable {
             isEnglishOnly: false,
             isHeavy: true,
             isRecommended: false,
-            description: "Highest accuracy. Slow on all but the most powerful Macs. Best for complex speech."
+            description: "Maximum accuracy across all languages. Very slow — only practical on M2 Pro/Max or newer."
         ),
     ]
 
-    static var `default`: WhisperModel { catalog.first { $0.id == "large-v3_turbo" } ?? catalog[1] }
+    static var `default`: WhisperModel { catalog.first { $0.id == "base.en" } ?? catalog[1] }
 }
 
 // MARK: - Service
@@ -141,7 +141,7 @@ class WhisperService: ObservableObject {
             storeCachedPath(modelFolder, for: variant)
         }
 
-        let config = WhisperKitConfig(modelFolder: modelFolder, load: true, download: false)
+        let config = WhisperKitConfig(modelFolder: modelFolder, prewarm: true, load: true, download: false)
         pipe = try await WhisperKit(config)
         refreshDownloadedVariants()
     }
@@ -245,7 +245,8 @@ class WhisperService: ObservableObject {
         let options = DecodingOptions(
             task: .transcribe,
             language: language?.isEmpty == false ? language : nil,
-            temperature: 0.0
+            temperature: 0.0,
+            chunkingStrategy: .vad
         )
         let results = try await pipe.transcribe(audioPath: audioURL.path, decodeOptions: options)
         return results.map(\.text).joined().trimmingCharacters(in: .whitespacesAndNewlines)
