@@ -182,16 +182,9 @@ private struct GeneralSettingsView: View {
 
 // MARK: - Models
 
-private struct ModelsSettingsView: View {
-    @EnvironmentObject var viewModel: DictationViewModel
-    @EnvironmentObject var whisperService: WhisperService
-
-    @AppStorage("selectedModel") private var selectedModel: String = WhisperModel.default.id
-    @State private var downloadError: String?
-
+private struct ModelGuidanceBanner: View {
     var body: some View {
         VStack(spacing: 0) {
-            // Guidance banner
             HStack(alignment: .top, spacing: 8) {
                 Image(systemName: "lightbulb.fill")
                     .font(.caption)
@@ -205,8 +198,21 @@ private struct ModelsSettingsView: View {
             .padding(.horizontal, 16)
             .padding(.vertical, 10)
             .frame(maxWidth: .infinity, alignment: .leading)
-
             Divider()
+        }
+    }
+}
+
+private struct ModelsSettingsView: View {
+    @EnvironmentObject var viewModel: DictationViewModel
+    @EnvironmentObject var whisperService: WhisperService
+
+    @AppStorage("selectedModel") private var selectedModel: String = WhisperModel.default.id
+    @State private var downloadError: String?
+
+    var body: some View {
+        VStack(spacing: 0) {
+            ModelGuidanceBanner()
 
             ScrollView {
                 LazyVStack(spacing: 10) {
