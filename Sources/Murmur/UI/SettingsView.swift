@@ -72,6 +72,8 @@ private struct GeneralSettingsView: View {
     @AppStorage("whisperPromptEnabled") private var whisperPromptEnabled: Bool = false
     @AppStorage("whisperPrompt")        private var whisperPrompt: String = ""
     @AppStorage("launchAtLogin")        private var launchAtLogin: Bool = false
+    @AppStorage("selectedLanguage")     private var selectedLanguage: String = ""
+    @AppStorage("selectedModel")        private var selectedModel: String = WhisperModel.default.id
 
     static let defaultWhisperPrompt = "Clean, properly punctuated text. No filler words or false starts."
 
@@ -130,6 +132,27 @@ private struct GeneralSettingsView: View {
                                 .foregroundStyle(.secondary)
                                 .monospacedDigit()
                         }
+                    }
+                }
+            }
+
+            Section("Language") {
+                Picker("Transcription language", selection: $selectedLanguage) {
+                    ForEach(DictationLanguage.catalog) { lang in
+                        Text(lang.displayName).tag(lang.id)
+                    }
+                }
+                .pickerStyle(.radioGroup)
+
+                if !selectedLanguage.isEmpty && selectedLanguage != "en" {
+                    let currentModel = WhisperModel.catalog.first { $0.id == selectedModel }
+                    if currentModel?.isEnglishOnly == true {
+                        Label(
+                            "English-only model selected — switch to Large v3 Turbo for other languages",
+                            systemImage: "exclamationmark.triangle.fill"
+                        )
+                        .font(.caption)
+                        .foregroundStyle(.orange)
                     }
                 }
             }

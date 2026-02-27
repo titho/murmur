@@ -16,6 +16,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             "selectedModel": "large-v3_turbo",
             "historyStoragePath": "",
             "pillEnabled": true,
+            "selectedLanguage": "",
         ])
 
         NSApp.setActivationPolicy(.accessory)

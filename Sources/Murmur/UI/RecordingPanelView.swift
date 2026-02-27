@@ -3,6 +3,8 @@ import SwiftUI
 struct RecordingPanelView: View {
     @EnvironmentObject var viewModel: DictationViewModel
     @EnvironmentObject var resourceMonitor: ResourceMonitor
+    @AppStorage("selectedLanguage") private var selectedLanguage: String = ""
+    @AppStorage("selectedModel")    private var selectedModel: String = WhisperModel.default.id
 
     var body: some View {
         VStack(spacing: 0) {
@@ -73,6 +75,53 @@ struct RecordingPanelView: View {
         .fixedSize(horizontal: false, vertical: true)
     }
 
+    private var languagePicker: some View {
+        VStack(spacing: 4) {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 6) {
+                    ForEach(DictationLanguage.catalog) { lang in
+                        Button(lang.shortName) {
+                            selectedLanguage = lang.id
+                        }
+                        .buttonStyle(.plain)
+                        .font(.system(size: 11, weight: .medium))
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(
+                            selectedLanguage == lang.id
+                                ? Color.accentColor.opacity(0.15)
+                                : Color(nsColor: .controlBackgroundColor)
+                        )
+                        .foregroundStyle(
+                            selectedLanguage == lang.id ? Color.accentColor : Color.secondary
+                        )
+                        .clipShape(Capsule())
+                        .overlay(
+                            Capsule().stroke(
+                                selectedLanguage == lang.id ? Color.accentColor.opacity(0.4) : Color.clear,
+                                lineWidth: 1
+                            )
+                        )
+                    }
+                }
+                .padding(.horizontal, 2)
+            }
+
+            if !selectedLanguage.isEmpty && selectedLanguage != "en" {
+                let currentModel = WhisperModel.catalog.first { $0.id == selectedModel }
+                if currentModel?.isEnglishOnly == true {
+                    HStack(spacing: 4) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundStyle(.orange)
+                        Text("English-only model — switch to Large v3 Turbo for other languages")
+                            .foregroundStyle(.secondary)
+                    }
+                    .font(.system(size: 10))
+                }
+            }
+        }
+    }
+
     private var resourceFooter: some View {
         HStack(spacing: 12) {
             Label(
@@ -102,6 +151,8 @@ struct RecordingPanelView: View {
                 VStack(spacing: 10) {
                     IdleWaveformView()
                         .frame(height: 50)
+
+                    languagePicker
 
                     Text("Press ⌘⇧D to start dictating")
                         .font(.callout)
