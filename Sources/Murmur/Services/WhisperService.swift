@@ -219,10 +219,17 @@ class WhisperService: ObservableObject {
     }
 
     /// Transcribe a WAV/M4A/MP3 file.
-    func transcribe(audioURL: URL, initialPrompt: String? = nil) async throws -> String {
+    /// - Parameter language: ISO 639-1 language code (e.g. "bg", "en"), or nil for auto-detect.
+    /// NOTE: WhisperKit's DecodingOptions does not expose a string-based initial prompt;
+    /// the `whisperPrompt` UserDefault setting is therefore inert.
+    func transcribe(audioURL: URL, language: String? = nil) async throws -> String {
         guard let pipe else { throw WhisperServiceError.modelNotLoaded }
 
-        let options = DecodingOptions(task: .transcribe, temperature: 0.0)
+        let options = DecodingOptions(
+            task: .transcribe,
+            language: language?.isEmpty == false ? language : nil,
+            temperature: 0.0
+        )
         let results = try await pipe.transcribe(audioPath: audioURL.path, decodeOptions: options)
         return results.map(\.text).joined().trimmingCharacters(in: .whitespacesAndNewlines)
     }

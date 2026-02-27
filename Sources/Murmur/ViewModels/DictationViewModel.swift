@@ -41,10 +41,9 @@ class DictationViewModel: ObservableObject {
         return val > 0 ? val : 120
     }
 
-    private var whisperInitialPrompt: String? {
-        guard UserDefaults.standard.bool(forKey: "whisperPromptEnabled") else { return nil }
-        let p = UserDefaults.standard.string(forKey: "whisperPrompt") ?? ""
-        return p.isEmpty ? nil : p
+    private var whisperLanguage: String? {
+        let lang = UserDefaults.standard.string(forKey: "selectedLanguage") ?? ""
+        return lang.isEmpty ? nil : lang
     }
 
     init() {
@@ -173,9 +172,8 @@ class DictationViewModel: ObservableObject {
         state = .transcribing
         do {
             let duration = audioDuration(url: url)
-            let prompt = whisperInitialPrompt
             let transcribeStart = Date()
-            let text = try await whisperService.transcribe(audioURL: url, initialPrompt: prompt)
+            let text = try await whisperService.transcribe(audioURL: url, language: whisperLanguage)
             let transcribeTime = Date().timeIntervalSince(transcribeStart)
             let cpu = resourceMonitor.cpuPercent
             let mem = resourceMonitor.memoryMB
@@ -221,9 +219,8 @@ class DictationViewModel: ObservableObject {
                 waveformSamples = Array(repeating: 0, count: 60)
 
                 let duration = audioDuration(url: wavURL)
-                let prompt = whisperInitialPrompt
                 let transcribeStart = Date()
-                let text = try await whisperService.transcribe(audioURL: wavURL, initialPrompt: prompt)
+                let text = try await whisperService.transcribe(audioURL: wavURL, language: whisperLanguage)
                 let transcribeTime = Date().timeIntervalSince(transcribeStart)
                 let cpu = resourceMonitor.cpuPercent
                 let mem = resourceMonitor.memoryMB
