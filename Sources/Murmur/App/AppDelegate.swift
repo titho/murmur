@@ -17,6 +17,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             "historyStoragePath": "",
             "pillEnabled": true,
             "selectedLanguage": "",
+            "saveRecordingsEnabled": false,
         ])
 
         NSApp.setActivationPolicy(.accessory)

@@ -27,6 +27,7 @@ class DictationViewModel: ObservableObject {
     let historyStore = HistoryStore()
     let whisperService = WhisperService()
     let resourceMonitor = ResourceMonitor()
+    let recordingsStore = RecordingsStore()
 
     private let audioRecorder = AudioRecorder()
     private let outputManager = OutputManager()
@@ -199,6 +200,11 @@ class DictationViewModel: ObservableObject {
                 let pid = targetApp.map { pid_t($0.processIdentifier) }
                 outputManager.output(finalText, targetPID: pid)
                 historyStore.append(entry)
+                if UserDefaults.standard.bool(forKey: "saveRecordingsEnabled") {
+                    try? FileManager.default.copyItem(
+                        at: url, to: recordingsStore.recordingURL(for: entry.id)
+                    )
+                }
             }
 
             try? await Task.sleep(nanoseconds: 2_500_000_000)
@@ -256,7 +262,12 @@ class DictationViewModel: ObservableObject {
                     historyStore.append(entry)
                 }
 
-                try? FileManager.default.removeItem(at: wavURL)
+                let saveEnabled = UserDefaults.standard.bool(forKey: "saveRecordingsEnabled")
+                if saveEnabled && !finalText.isEmpty {
+                    recordingsStore.save(tempURL: wavURL, for: entry.id)
+                } else {
+                    try? FileManager.default.removeItem(at: wavURL)
+                }
 
                 try? await Task.sleep(nanoseconds: 2_500_000_000)
                 if case .done = state { state = .idle }
