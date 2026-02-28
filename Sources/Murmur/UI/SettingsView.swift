@@ -315,131 +315,121 @@ private struct ModelRow: View {
             : String(format: "%.1f GB", Double(model.sizeMB) / 1000)
     }
 
-    private func formatBytes(_ bytes: Int64) -> String {
-        let mb = Double(bytes) / 1_000_000
-        if mb < 1000 {
-            return String(format: "%.0f MB", mb)
-        } else {
-            return String(format: "%.1f GB", mb / 1000)
-        }
-    }
-
     var body: some View {
         HStack(alignment: .top, spacing: 14) {
             VStack(alignment: .leading, spacing: 6) {
-                // Name + badges
                 HStack(spacing: 6) {
                     Text(model.displayName)
                         .font(.system(size: 14, weight: .semibold))
-                    if model.isRecommended {
-                        Badge("Recommended", color: .green)
-                    }
-                    if model.isEnglishOnly {
-                        Badge("EN only", color: .blue)
-                    }
-                    if model.isHeavy {
-                        Badge("Heavy", color: .orange)
-                    }
+                    if model.isRecommended { Badge("Recommended", color: .green) }
+                    if model.isEnglishOnly  { Badge("EN only", color: .blue) }
+                    if model.isHeavy        { Badge("Heavy", color: .orange) }
                 }
-
                 Text(model.description)
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
-
-                // Stats row — compact, no wrapping labels
                 HStack(spacing: 10) {
                     Text(sizeLabel)
-                        .font(.caption2)
-                        .foregroundStyle(.tertiary)
+                        .font(.caption2).foregroundStyle(.tertiary)
                         .frame(width: 48, alignment: .leading)
-
                     CompactRating(icon: "bolt.fill", rating: model.speedRating, color: .green)
                     CompactRating(icon: "scope", rating: model.accuracyRating, color: .blue)
                 }
             }
-
             Spacer(minLength: 8)
-
-            // Action area
-            VStack(alignment: .trailing, spacing: 6) {
-                if isDownloading, let progress = downloadProgress {
-                    VStack(alignment: .trailing, spacing: 4) {
-                        if let total = progress.totalBytes, total > 0 {
-                            // Determinate progress (if totalBytes is known)
-                            let fraction = Double(progress.bytesDownloaded) / Double(total)
-                            ProgressView(value: fraction)
-                                .frame(width: 80)
-                                .progressViewStyle(.linear)
-                            Text("\(Int(fraction * 100))%")
-                                .font(.caption2)
-                                .foregroundStyle(.secondary)
-                                .monospacedDigit()
-                        } else {
-                            // Indeterminate + byte count
-                            ProgressView()
-                                .scaleEffect(0.65)
-                                .frame(width: 18, height: 18)
-                            Text(formatBytes(progress.bytesDownloaded))
-                                .font(.caption2)
-                                .foregroundStyle(.secondary)
-                                .monospacedDigit()
-                        }
-                    }
-                } else if isDownloading {
-                    // No progress data yet
-                    VStack(alignment: .trailing, spacing: 4) {
-                        ProgressView()
-                            .scaleEffect(0.65)
-                            .frame(width: 18, height: 18)
-                        Text("Starting…")
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                    }
-                } else if isDownloaded {
-                    if isSelected {
-                        if isLoading {
-                            ProgressView().scaleEffect(0.65).frame(width: 18, height: 18)
-                        } else {
-                            Text("Loaded")
-                                .font(.caption2)
-                                .foregroundStyle(.green)
-                                .padding(.horizontal, 7)
-                                .padding(.vertical, 3)
-                                .background(.green.opacity(0.12))
-                                .clipShape(Capsule())
-                        }
-                    } else {
-                        Button("Load") { onSelect() }
-                            .buttonStyle(.bordered)
-                            .controlSize(.small)
-                    }
-                    Button(action: onDelete) {
-                        Image(systemName: "trash")
-                            .font(.caption)
-                    }
-                    .buttonStyle(.borderless)
-                    .foregroundStyle(.secondary)
-                    .help("Delete model from disk")
-                } else {
-                    Button("Download") { onDownload() }
-                        .buttonStyle(.bordered)
-                        .controlSize(.small)
-                }
-            }
-            .frame(width: 90, alignment: .trailing)
+            ModelRowActionView(
+                isDownloading: isDownloading,
+                downloadProgress: downloadProgress,
+                isDownloaded: isDownloaded,
+                isSelected: isSelected,
+                isLoading: isLoading,
+                onSelect: onSelect,
+                onDownload: onDownload,
+                onDelete: onDelete
+            )
         }
         .padding(14)
         .background(
             RoundedRectangle(cornerRadius: 10)
-                .fill(isSelected
-                      ? Color.accentColor.opacity(0.07)
-                      : Color(nsColor: .controlBackgroundColor))
+                .fill(isSelected ? Color.accentColor.opacity(0.07) : Color(nsColor: .controlBackgroundColor))
         )
         .overlay(
             RoundedRectangle(cornerRadius: 10)
                 .stroke(borderColor, lineWidth: model.isRecommended ? 1.5 : 1)
         )
+    }
+}
+
+private struct ModelRowActionView: View {
+    let isDownloading: Bool
+    let downloadProgress: (bytesDownloaded: Int64, totalBytes: Int64?)?
+    let isDownloaded: Bool
+    let isSelected: Bool
+    let isLoading: Bool
+    let onSelect: () -> Void
+    let onDownload: () -> Void
+    let onDelete: () -> Void
+
+    private func formatBytes(_ bytes: Int64) -> String {
+        let mb = Double(bytes) / 1_000_000
+        return mb < 1000 ? String(format: "%.0f MB", mb) : String(format: "%.1f GB", mb / 1000)
+    }
+
+    var body: some View {
+        VStack(alignment: .trailing, spacing: 6) {
+            if isDownloading {
+                downloadingView
+            } else if isDownloaded {
+                downloadedView
+            } else {
+                Button("Download") { onDownload() }
+                    .buttonStyle(.bordered).controlSize(.small)
+            }
+        }
+        .frame(width: 90, alignment: .trailing)
+    }
+
+    @ViewBuilder private var downloadingView: some View {
+        if let progress = downloadProgress {
+            VStack(alignment: .trailing, spacing: 4) {
+                if let total = progress.totalBytes, total > 0 {
+                    let fraction = Double(progress.bytesDownloaded) / Double(total)
+                    ProgressView(value: fraction).frame(width: 80).progressViewStyle(.linear)
+                    Text("\(Int(fraction * 100))%")
+                        .font(.caption2).foregroundStyle(.secondary).monospacedDigit()
+                } else {
+                    ProgressView().scaleEffect(0.65).frame(width: 18, height: 18)
+                    Text(formatBytes(progress.bytesDownloaded))
+                        .font(.caption2).foregroundStyle(.secondary).monospacedDigit()
+                }
+            }
+        } else {
+            VStack(alignment: .trailing, spacing: 4) {
+                ProgressView().scaleEffect(0.65).frame(width: 18, height: 18)
+                Text("Starting…").font(.caption2).foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    @ViewBuilder private var downloadedView: some View {
+        if isSelected {
+            if isLoading {
+                ProgressView().scaleEffect(0.65).frame(width: 18, height: 18)
+            } else {
+                Text("Loaded")
+                    .font(.caption2).foregroundStyle(.green)
+                    .padding(.horizontal, 7).padding(.vertical, 3)
+                    .background(.green.opacity(0.12)).clipShape(Capsule())
+            }
+        } else {
+            Button("Load") { onSelect() }.buttonStyle(.bordered).controlSize(.small)
+        }
+        Button(action: onDelete) {
+            Image(systemName: "trash").font(.caption)
+        }
+        .buttonStyle(.borderless).foregroundStyle(.secondary)
+        .help("Delete model from disk")
     }
 }
 
