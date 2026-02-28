@@ -595,6 +595,8 @@ private struct AICleanupSettingsView: View {
 
 private struct StorageSettingsView: View {
     @EnvironmentObject var historyStore: HistoryStore
+    @EnvironmentObject var recordingsStore: RecordingsStore
+    @AppStorage("saveRecordingsEnabled") private var saveRecordingsEnabled: Bool = false
     @State private var showMoveConfirm = false
     @State private var pendingFolder: URL?
 
@@ -638,6 +640,13 @@ private struct StorageSettingsView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
+
+            Section("Saved Recordings") {
+                Toggle("Save recordings", isOn: $saveRecordingsEnabled)
+                if saveRecordingsEnabled {
+                    SavedRecordingsFooterView(recordingsStore: recordingsStore)
+                }
+            }
         }
         .formStyle(.grouped)
         .navigationTitle("Storage")
@@ -675,6 +684,41 @@ private struct StorageSettingsView: View {
             try? historyStore.resetStorageLocation(moveExisting: move)
         }
         pendingFolder = nil
+    }
+}
+
+private struct SavedRecordingsFooterView: View {
+    @ObservedObject var recordingsStore: RecordingsStore
+
+    private var totalSize: Int64 { recordingsStore.totalSize() }
+
+    private func formatBytes(_ bytes: Int64) -> String {
+        let mb = Double(bytes) / 1_048_576
+        if mb < 1000 {
+            return String(format: "%.1f MB", mb)
+        } else {
+            return String(format: "%.2f GB", mb / 1024)
+        }
+    }
+
+    var body: some View {
+        HStack {
+            if totalSize > 0 {
+                Text("\(formatBytes(totalSize)) used")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Button("Reveal in Finder") {
+                    NSWorkspace.shared.open(recordingsStore.recordingsFolder)
+                }
+                .buttonStyle(.borderless)
+                .controlSize(.small)
+            } else {
+                Text("No recordings saved yet.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
     }
 }
 

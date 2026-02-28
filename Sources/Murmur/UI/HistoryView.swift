@@ -4,6 +4,7 @@ import AppKit
 struct HistoryView: View {
     @EnvironmentObject var historyStore: HistoryStore
     @EnvironmentObject var viewModel: DictationViewModel
+    @EnvironmentObject var recordingsStore: RecordingsStore
     @State private var showClearConfirm = false
     @State private var copiedID: UUID?
     @State private var expandedID: UUID?
@@ -48,6 +49,7 @@ struct HistoryView: View {
                         isCopied: copiedID == entry.id,
                         isExpanded: expandedID == entry.id,
                         isRunningCleanup: cleaningID == entry.id,
+                        hasRecording: recordingsStore.hasRecording(for: entry.id),
                         onCopy: { copyToClipboard(entry) },
                         onToggleExpand: {
                             expandedID = expandedID == entry.id ? nil : entry.id
@@ -59,7 +61,8 @@ struct HistoryView: View {
                                 cleaningID = nil
                                 expandedID = entry.id
                             }
-                        }
+                        },
+                        onDeleteRecording: { recordingsStore.delete(for: entry.id) }
                     )
                 }
                 .listStyle(.plain)
@@ -100,9 +103,11 @@ struct HistoryRowView: View {
     let isCopied: Bool
     let isExpanded: Bool
     let isRunningCleanup: Bool
+    let hasRecording: Bool
     let onCopy: () -> Void
     let onToggleExpand: () -> Void
     let onRunCleanup: () -> Void
+    let onDeleteRecording: () -> Void
 
     private var hasMetrics: Bool {
         entry.transcriptionTimeSeconds != nil || entry.audioDurationSeconds != nil
@@ -123,9 +128,17 @@ struct HistoryRowView: View {
                         .lineLimit(isExpanded ? nil : 2)
                         .font(.body)
 
-                    Text(Self.dateFormatter.string(from: entry.date))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                    HStack(spacing: 4) {
+                        Text(Self.dateFormatter.string(from: entry.date))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        if hasRecording {
+                            Image(systemName: "waveform")
+                                .font(.system(size: 9))
+                                .foregroundStyle(.secondary)
+                                .help("Recording saved")
+                        }
+                    }
 
                     if let input = entry.inputTokens, let output = entry.outputTokens {
                         HStack(spacing: 4) {
@@ -200,6 +213,18 @@ struct HistoryRowView: View {
                                 .controlSize(.small)
                             }
                         }
+                    }
+
+                    if hasRecording {
+                        Button(role: .destructive) {
+                            onDeleteRecording()
+                        } label: {
+                            Label("Delete Recording", systemImage: "waveform.slash")
+                                .font(.caption)
+                        }
+                        .buttonStyle(.borderless)
+                        .controlSize(.small)
+                        .foregroundStyle(.red)
                     }
                 }
                 .padding(.bottom, 4)
