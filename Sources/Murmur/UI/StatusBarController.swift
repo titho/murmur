@@ -13,7 +13,6 @@ class StatusBarController {
     private var aboutWindow: NSWindow?
     private var pillHUD: PillHUDController!
     private var flashTimer: Timer?
-    private var visibilityObservation: NSKeyValueObservation?
 
     init(viewModel: DictationViewModel) {
         self.viewModel = viewModel
@@ -25,14 +24,7 @@ class StatusBarController {
 
     private func setupStatusItem() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
-        // macOS 26 hides third-party status items via NSStatusItem Visible Item-X = 0.
-        // Re-assert visibility via KVO so the item reappears if macOS tries to hide it.
         statusItem.isVisible = true
-        visibilityObservation = statusItem.observe(\.isVisible, options: [.new]) { [weak self] item, _ in
-            if !item.isVisible {
-                DispatchQueue.main.async { item.isVisible = true }
-            }
-        }
 
         if let button = statusItem.button {
             if let icon = NSImage(named: "MenuBarIcon") {
